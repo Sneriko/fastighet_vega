@@ -3,6 +3,8 @@ import mmcv
 from pathlib import PurePath
 import json
 import multiprocessing as mp
+import sys
+import os
 
 def create_inst(img_p):
     
@@ -16,7 +18,6 @@ def create_inst(img_p):
 
     img_dict['width'] = width
     img_dict['height'] = height
-    #img_dict['id'] = i
     img_dict['file_name'] = file_name
 
     return img_dict
@@ -42,10 +43,13 @@ def add_cat_to_coco(coco):
 
     return coco
 
+def main(argv):
 
-def main():
+    load_path = argv[0]
+    output_path = argv[1]
 
-    imgs = glob('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/batches/**/*.tif')
+    imgs = glob(os.path.join(load_path, '**', '**'))
+    print(len(imgs))
     imgs.sort()
 
     mp.freeze_support()
@@ -63,49 +67,11 @@ def main():
     
     coco = add_cat_to_coco(coco)
 
-    with open('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/coco/coco_for_det.json', 'w', encoding='utf8') as f:
+    with open(os.path.join(output_path , 'coco', 'coco_for_det.json'), 'w', encoding='utf8') as f:
         coco_str = json.dumps(coco, indent = 4, ensure_ascii=False)
         f.write(str(coco_str))
 
 if __name__ == "__main__":
-    main()
-
-
-
-
-
-"""
-imgs = glob('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/batches/**/*.tif')
-imgs.sort()
-
-coco = dict()
-
-coco['images'] = list()
-
-for i, img_p in enumerate(imgs):
     
-    img_dict = dict()
-    
-    img = mmcv.imread(img_p)
-    
-    height = img.shape[0]
-    width = img.shape[1]
-    file_name = ('/').join(PurePath(img_p).parts[-2:])
-
-    img_dict['width'] = width
-    img_dict['height'] = height
-    img_dict['id'] = i
-    img_dict['file_name'] = file_name
-
-    coco['images'].append(img_dict)
-
-coco['categories'] = list()
-cat_prop = dict()
-cat_prop['id'] = 0
-cat_prop['name'] = 'property'
-coco['categories'].append(cat_prop)
-
-with open('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/coco/coco_for_det.json', 'w', encoding='utf8') as f:
-    coco_str = json.dumps(coco, indent = 4, ensure_ascii=False)
-    f.write(str(coco_str))
-"""
+    print(sys.argv[1:])
+    main(sys.argv[1:])                  

@@ -5,6 +5,7 @@ import itertools
 import os
 from copy import deepcopy
 from pathlib import Path
+import sys
 
 def write_json(json_out, json_dict):
 
@@ -12,9 +13,9 @@ def write_json(json_out, json_dict):
         s = json.dumps(json_dict, indent = 4, ensure_ascii=False, sort_keys=True)
         f.write(str(s))
 
-def fill_in_blanks(results_det, coco_dict):
+def fill_in_blanks(results_det, coco_dict, output_path):
 
-    path_to_jsons = '/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/json'
+    path_to_jsons = os.path.join(output_path, 'json')
 
     tuples = list(zip(coco_dict['images'], results_det))
     batches = dict()
@@ -33,11 +34,11 @@ def fill_in_blanks(results_det, coco_dict):
                 page_key = inst[0]['file_name'].split('/')[1].split('.')[0]
                 json_dict[page_key] = list()
 
-        json_out = os.path.join('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/json/', key_batch + '.json')
+        json_out = os.path.join(output_path, 'json', key_batch + '.json')
         
         write_json(json_out, json_dict)
 
-def fill_in_flipside(batch_jsons):
+def fill_in_flipside(batch_jsons, output_path):
     
     for batch_json in batch_jsons:
 
@@ -61,29 +62,35 @@ def fill_in_flipside(batch_jsons):
                         inst['cop_from_flipside'] = True
 
                 else:
-                    json_dict[key] = deepcopy(json_dict[next_page])
+                    try:
+                        json_dict[key] = deepcopy(json_dict[next_page])
+                    except:
+                        #print('last page')
+                        pass
                     for inst in json_dict[key]:
                         inst['cop_from_flipside'] = True
 
             else:
                 continue
 
-        json_out = os.path.join('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/json/', batch + '.json')
+        json_out = os.path.join(output_path, 'json', batch + '.json')
         write_json(json_out, json_dict)
 
-def main():
+def main(argv):
 
-    with open('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/pickle/results_det.pkl', 'rb') as f:
+    output_path = argv[0]
+
+    with open(os.path.join(output_path, 'pickle', 'results_det.pkl'), 'rb') as f:
         results_det = pickle.load(f)
 
-    with open('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/coco/coco_for_det.json', 'r') as f:
+    with open(os.path.join(output_path, 'coco', 'coco_for_det.json'), 'r') as f:
         coco_dict = json.load(f)
 
-    fill_in_blanks(results_det, coco_dict)
+    fill_in_blanks(results_det, coco_dict, output_path)
 
-    batch_jsons = glob('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/json/**/*.json', recursive=True)
+    batch_jsons = glob(os.path.join(output_path, 'json', '**', '*.json'), recursive=True)
 
-    fill_in_flipside(batch_jsons)
+    fill_in_flipside(batch_jsons, output_path)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

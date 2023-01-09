@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import itertools
 import os
+import sys
 
 
 def flatten_res_det(result_dict_det):
@@ -33,19 +34,18 @@ def create_comb_list(rec_list, result_dict_rec, flat_res_det):
     return comb_dict_list
 
 
-def write_jsons(comb_dict_list):
+def write_jsons(comb_dict_list, output_path):
     
     batches = dict()
 
     for key, group in itertools.groupby(comb_dict_list, key=lambda x: x['name'].split('/')[0]):
-        print(key)
         batches[key] = list(group)
 
     print(len(batches))
 
     for key_batch, batch in batches.items():
 
-        json_out = os.path.join('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/json', key_batch + '.json')
+        json_out = os.path.join(output_path, 'json', key_batch + '.json')
         with open(json_out, 'w', encoding='utf16') as f:
 
             json_dict = dict()
@@ -61,25 +61,27 @@ def write_jsons(comb_dict_list):
             s = json.dumps(json_dict, indent = 4, ensure_ascii=False, sort_keys=True)
             f.write(str(s))
 
-def main():
+def main(argv):
 
-    with open('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/pickle/results_rec.pkl', 'rb') as f:
+    output_path = argv[0]
+
+    with open(os.path.join(output_path, 'pickle', 'results_rec.pkl'), 'rb') as f:
         result_dict_rec = pickle.load(f)
 
-    with open('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/pickle/results_det.pkl', 'rb') as f:
+    with open(os.path.join(output_path, 'pickle', 'results_det.pkl'), 'rb') as f:
         result_dict_det = pickle.load(f)
 
-    rec_df = pd.read_csv('/ceph/hpc/home/euerikl/projects/fastighet/data/pipeline_test_data/recog/rec_file.txt', delimiter='|', usecols=[0], names=['file_name'])
+    rec_df = pd.read_csv(os.path.join(output_path, 'recog', 'rec_file.txt'), delimiter='|', usecols=[0], names=['file_name'])
     rec_list = rec_df['file_name'].tolist()
 
     flat_res_det = flatten_res_det(result_dict_det)
 
     comb_dict_list = create_comb_list(rec_list, result_dict_rec, flat_res_det)
 
-    write_jsons(comb_dict_list)
+    write_jsons(comb_dict_list, output_path)
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
 
 
 
