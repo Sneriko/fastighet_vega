@@ -1,5 +1,7 @@
 FROM nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04
 
+ARG TARGETARCH
+
 ENV DEBIAN_FRONTEND=noninteractive \
     PATH=/opt/conda/bin:$PATH
 
@@ -7,6 +9,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl git ca-certificates bash bzip2 \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Conda bootstrap with architecture-aware installer
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"; \
+    elif [ "$TARGETARCH" = "amd64" ] || [ -z "$TARGETARCH" ]; then \
+      CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"; \
+    else \
+      echo "Unsupported TARGETARCH: $TARGETARCH"; exit 1; \
+    fi \
+    && echo "Using installer: $CONDA_URL" \
+    && wget -q "$CONDA_URL" -O /tmp/miniconda.sh \
 # Install Miniconda (x86_64 image)
 RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
     && bash /tmp/miniconda.sh -b -p /opt/conda \

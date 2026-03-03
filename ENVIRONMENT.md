@@ -371,6 +371,52 @@ By default, the script mounts:
 - repo root -> `/workspace/fastighet_vega`
 - `/ceph` -> `/ceph` (set `DATA_DIR=/your/path` to override)
 
+
+### Troubleshooting: `permission denied` to `/var/run/docker.sock`
+
+If running `bash docker/run_legacy_container.sh` gives:
+
+`permission denied while trying to connect to the Docker daemon socket`
+
+then your user cannot access the Docker daemon (or daemon is not running).
+
+Typical fixes on Linux:
+
+```bash
+sudo systemctl start docker
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+Then retry:
+
+```bash
+bash docker/run_legacy_container.sh
+```
+
+Temporary workaround (if group change is not possible right now):
+
+```bash
+sudo bash docker/run_legacy_container.sh
+```
+
+
+### Troubleshooting: Docker build `Exec format error` at Miniconda step
+
+If the Docker build fails at Miniconda with:
+
+`/opt/conda/_conda: cannot execute binary file: Exec format error`
+
+that is an architecture mismatch (for example using x86_64 installer on arm64/aarch64). The provided `docker/run_legacy_container.sh` now auto-detects host architecture and passes a matching installer choice to the Docker build.
+
+Re-run with:
+
+```bash
+bash docker/run_legacy_container.sh
+```
+
+Note: on aarch64, build may proceed past Miniconda but still fail later on legacy CUDA wheels (`torch==1.12.1+cu116`, `mmcv-full<2`) due to limited wheel availability on arm64.
+
 ### Inside the container
 
 The `fastighet-mm` conda env is auto-activated. You can run your pipeline from `src/` directly, for example:

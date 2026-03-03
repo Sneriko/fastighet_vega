@@ -10,6 +10,27 @@ DATA_DIR="${DATA_DIR:-/ceph}"
 
 cd "$REPO_ROOT"
 
+if ! docker info >/dev/null 2>&1; then
+  echo "[ERROR] Cannot access Docker daemon (permission denied or daemon not running)." >&2
+  echo "Try one of:" >&2
+  echo "  1) sudo usermod -aG docker $USER && newgrp docker" >&2
+  echo "  2) sudo systemctl start docker" >&2
+  echo "  3) run with sudo: sudo bash docker/run_legacy_container.sh" >&2
+  exit 1
+fi
+
+HOST_ARCH="$(uname -m)"
+if [ "$HOST_ARCH" = "x86_64" ]; then
+  TARGETARCH="amd64"
+elif [ "$HOST_ARCH" = "aarch64" ] || [ "$HOST_ARCH" = "arm64" ]; then
+  TARGETARCH="arm64"
+else
+  echo "[ERROR] Unsupported host architecture: $HOST_ARCH" >&2
+  exit 1
+fi
+
+echo "[INFO] Building image for TARGETARCH=$TARGETARCH"
+docker build --build-arg TARGETARCH="$TARGETARCH" -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
 docker build -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
 
 docker run --rm -it \
