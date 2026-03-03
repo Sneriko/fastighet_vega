@@ -19,10 +19,12 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     fi \
     && echo "Using installer: $CONDA_URL" \
     && wget -q "$CONDA_URL" -O /tmp/miniconda.sh \
-# Install Miniconda (x86_64 image)
-RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh \
     && bash /tmp/miniconda.sh -b -p /opt/conda \
     && rm -f /tmp/miniconda.sh
+
+# Accept Anaconda Terms of Service for default channels (needed for non-interactive Docker builds)
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
 SHELL ["/bin/bash", "-lc"]
 

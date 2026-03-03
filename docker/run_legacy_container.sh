@@ -29,9 +29,37 @@ else
   exit 1
 fi
 
+
+# Guard against stale/broken Dockerfile versions from earlier revisions
+# Validate Dockerfile shape to catch bad conflict resolutions
+if [ "$(grep -c '^RUN .*miniconda\.sh' docker/Dockerfile.legacy || true)" -gt 1 ]; then
+  echo "[ERROR] docker/Dockerfile.legacy contains multiple Miniconda RUN blocks (likely bad merge resolution)." >&2
+  echo "Open docker/Dockerfile.legacy and keep only the architecture-aware block." >&2
+  exit 1
+fi
+
+if grep -q 'RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/miniconda.sh' docker/Dockerfile.legacy; then
+  echo "[ERROR] Detected old hardcoded x86_64 Miniconda RUN line in docker/Dockerfile.legacy." >&2
+  echo "This usually means conflict resolution kept stale lines." >&2
+  echo "Re-check merge or reset this file from latest branch." >&2
+  exit 1
+fi
+
+if grep -q "Install Miniconda (x86_64 image)" docker/Dockerfile.legacy; then
+  echo "[ERROR] Detected stale docker/Dockerfile.legacy content (old x86_64-only block)." >&2
+  echo "Please update your repo and retry:" >&2
+  echo "  git pull" >&2
+  echo "  bash docker/run_legacy_container.sh" >&2
+  exit 1
+fi
+
+echo "[INFO] Using script: docker/run_legacy_container.sh"
 echo "[INFO] Building image for TARGETARCH=$TARGETARCH"
-docker build --build-arg TARGETARCH="$TARGETARCH" -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
-docker build -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
+BUILD_FLAGS=()
+if [ "${NO_CACHE:-0}" = "1" ]; then
+  BUILD_FLAGS+=(--no-cache)
+fi
+docker build "${BUILD_FLAGS[@]}" --build-arg TARGETARCH="$TARGETARCH" -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
 
 docker run --rm -it \
   --gpus all \
