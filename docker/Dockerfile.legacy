@@ -1,0 +1,43 @@
+FROM nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04
+
+ARG TARGETARCH
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH=/opt/conda/bin:$PATH
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget curl git ca-certificates bash bzip2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Conda bootstrap with architecture-aware installer
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
+      CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-aarch64.sh"; \
+    elif [ "$TARGETARCH" = "amd64" ] || [ -z "$TARGETARCH" ]; then \
+      CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh"; \
+    else \
+      echo "Unsupported TARGETARCH: $TARGETARCH"; exit 1; \
+    fi \
+    && echo "Using installer: $CONDA_URL" \
+    && wget -q "$CONDA_URL" -O /tmp/miniconda.sh \
+    && bash /tmp/miniconda.sh -b -p /opt/conda \
+    && rm -f /tmp/miniconda.sh
+
+SHELL ["/bin/bash", "-lc"]
+
+# Create legacy env for MMOCR 0.x / MMDet 2.x
+RUN conda create -n fastighet-mm python=3.9 -y \
+    && source /opt/conda/bin/activate fastighet-mm \
+    && pip install --no-cache-dir -U pip setuptools wheel \
+    && pip install --no-cache-dir pandas openmim \
+    && pip install --no-cache-dir torch==1.12.1+cu116 torchvision==0.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116 \
+    && mim install "mmcv-full<2.0.0" \
+    && mim install "mmdet>=2,<3" \
+    && mim install "mmocr>=0.6,<1.0" \
+    && conda clean -a -y
+
+# Auto-activate env in container shell
+RUN echo "source /opt/conda/bin/activate fastighet-mm" >> /root/.bashrc
+
+WORKDIR /workspace/fastighet_vega
+
+CMD ["bash"]
