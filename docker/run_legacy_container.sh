@@ -29,22 +29,9 @@ else
   exit 1
 fi
 
-
-# Guard against stale/broken Dockerfile versions from earlier revisions
-if grep -q "Install Miniconda (x86_64 image)" docker/Dockerfile.legacy; then
-  echo "[ERROR] Detected stale docker/Dockerfile.legacy content (old x86_64-only block)." >&2
-  echo "Please update your repo and retry:" >&2
-  echo "  git pull" >&2
-  echo "  bash docker/run_legacy_container.sh" >&2
-  exit 1
-fi
-
 echo "[INFO] Building image for TARGETARCH=$TARGETARCH"
-BUILD_FLAGS=()
-if [ "${NO_CACHE:-0}" = "1" ]; then
-  BUILD_FLAGS+=(--no-cache)
-fi
-docker build "${BUILD_FLAGS[@]}" --build-arg TARGETARCH="$TARGETARCH" -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
+docker build --build-arg TARGETARCH="$TARGETARCH" -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
+docker build -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
 
 docker run --rm -it \
   --gpus all \

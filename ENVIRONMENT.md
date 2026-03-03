@@ -415,14 +415,6 @@ Re-run with:
 bash docker/run_legacy_container.sh
 ```
 
-
-If you still see an old build log fragment containing `Install Miniconda (x86_64 image)` or `RUN wget ... Linux-x86_64.sh` appended into the same step, your local `docker/Dockerfile.legacy` is stale. Update repo state and rebuild:
-
-```bash
-git pull
-NO_CACHE=1 bash docker/run_legacy_container.sh
-```
-
 Note: on aarch64, build may proceed past Miniconda but still fail later on legacy CUDA wheels (`torch==1.12.1+cu116`, `mmcv-full<2`) due to limited wheel availability on arm64.
 
 ### Inside the container
@@ -434,4 +426,4 @@ cd src
 bash pipeline2.sh 1 /ceph/.../load_path /ceph/.../output_path
 ```
 
-If your server is **aarch64**, the Dockerfile now selects an aarch64 conda installer automatically, but legacy CUDA wheel availability may still block the `torch+cu116` / `mmcv-full<2` steps; use x86_64 for easiest compatibility, or prepare aarch64 source builds.
+If your server is **aarch64**, this Dockerfile (x86_64 Miniconda installer) is not suitable; use an x86_64 host/container for easiest legacy-wheel compatibility, or prepare aarch64 source builds.
