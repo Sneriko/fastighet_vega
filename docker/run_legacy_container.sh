@@ -31,6 +31,7 @@ fi
 
 echo "[INFO] Building image for TARGETARCH=$TARGETARCH"
 docker build --build-arg TARGETARCH="$TARGETARCH" -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
+docker build -f docker/Dockerfile.legacy -t "$IMAGE_NAME" .
 
 docker run --rm -it \
   --gpus all \

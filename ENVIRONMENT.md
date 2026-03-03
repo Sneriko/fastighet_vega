@@ -426,4 +426,4 @@ cd src
 bash pipeline2.sh 1 /ceph/.../load_path /ceph/.../output_path
 ```
 
-If your server is **aarch64**, the Dockerfile now selects an aarch64 conda installer automatically, but legacy CUDA wheel availability may still block the `torch+cu116` / `mmcv-full<2` steps; use x86_64 for easiest compatibility, or prepare aarch64 source builds.
+If your server is **aarch64**, this Dockerfile (x86_64 Miniconda installer) is not suitable; use an x86_64 host/container for easiest legacy-wheel compatibility, or prepare aarch64 source builds.
